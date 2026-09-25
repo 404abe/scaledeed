@@ -15,6 +15,7 @@ let appState = {
   activeConsultantId: 1,    // Default: Abe
   activeRoleId: 1,          // Default: Developer
   selectedCategory: "All",  // Category filter
+  heatmapRoleFilter: "all", // Academy Lead heatmap: 'all' | roleId — floats a role's core skills to top
   coreOnly: true,           // Toggle between core top-5 vs all 29 skills
   consultants: []           // Initialized from data.js or LocalStorage
 };
@@ -115,31 +116,6 @@ function saveState() {
   }
 }
 
-/**
- * Reloads all consultant data fresh from Supabase (discarding any local view).
- */
-async function resetDemoData() {
-  if (!confirm("Reload all consultant data from the Supabase database?")) return;
-  try {
-    appState.consultants = await SkillMatrixDB.loadConsultants();
-    if (appState.currentUser) {
-      const refreshed = appState.consultants.find(c => c.id === appState.currentUser.id);
-      appState.currentUser = refreshed || appState.consultants[0] || null;
-      if (appState.currentUser) {
-        appState.activeConsultantId = appState.currentUser.id;
-        appState.activeRoleId = appState.currentUser.roleId;
-      }
-    }
-    populateDropdowns();
-    if (appState.activeView === "admin") renderAdminDashboard();
-    else renderApp();
-    showToast("Reloaded from database.");
-  } catch (err) {
-    console.error(err);
-    showToast("Failed to reload from database.");
-  }
-}
-
 /** Renders a blocking error message into the main area. */
 function showFatalError(message) {
   const grid = document.getElementById("skills-matrix-grid");
@@ -206,17 +182,19 @@ function setupEventListeners() {
     });
   });
 
-  // Reset Demo Button
-  document.getElementById("btn-reset-demo").addEventListener("click", resetDemoData);
-
-  // Pitch Deck Helper Modal
-  document.getElementById("btn-pitch-guide").addEventListener("click", openPitchModal);
+  // Academy Lead Heatmap "Focus role" filter
+  const heatmapFilter = document.getElementById("heatmap-role-filter");
+  if (heatmapFilter) {
+    heatmapFilter.addEventListener("change", (e) => {
+      appState.heatmapRoleFilter = e.target.value;
+      renderGlobalHeatmap();
+    });
+  }
 
   // Close Modals
   document.getElementById("btn-close-smart-modal").addEventListener("click", closeSmartModal);
   document.getElementById("btn-cancel-smart").addEventListener("click", closeSmartModal);
   document.getElementById("btn-close-learning-modal").addEventListener("click", closeLearningModal);
-  document.getElementById("btn-close-pitch-modal").addEventListener("click", closePitchModal);
 
   // Save SMART Goal Form
   document.getElementById("smart-goal-form").addEventListener("submit", handleSaveSmartGoal);
@@ -294,6 +272,17 @@ function populateDropdowns() {
     signupRole.innerHTML = ROLES.map(r => `
       <option value="${r.id}">${r.name}</option>
     `).join("");
+  }
+
+  // Populate Academy Lead heatmap "Focus role" filter
+  const heatmapFilter = document.getElementById("heatmap-role-filter");
+  if (heatmapFilter) {
+    heatmapFilter.innerHTML = `<option value="all">All skills</option>` +
+      ROLES.map(r => `
+        <option value="${r.id}" ${String(r.id) === String(appState.heatmapRoleFilter) ? "selected" : ""}>
+          ${r.name}
+        </option>
+      `).join("");
   }
 }
 
@@ -735,64 +724,11 @@ function openLearningBridgeModal(skillName) {
     listContainer.appendChild(card);
   });
 
-  // Setup Third-Party Live Search button
-  const liveBtn = document.getElementById("btn-fetch-live-api");
-  liveBtn.onclick = () => fetchThirdPartyResources(skillName);
-
   document.getElementById("learning-modal").classList.add("active");
 }
 
 function closeLearningModal() {
   document.getElementById("learning-modal").classList.remove("active");
-  document.getElementById("live-api-results-box").style.display = "none";
-}
-
-/**
- * Satisfies the Hackathon constraint:
- * "Third-Party Data: Your app must call at least one external data source."
- * Calls the public GitHub Topics API / DevDocs index to pull live engineering repositories & docs
- */
-async function fetchThirdPartyResources(skillName) {
-  const resultBox = document.getElementById("live-api-results-box");
-  const resultContent = document.getElementById("live-api-results");
-  resultBox.style.display = "block";
-  resultContent.innerHTML = `<p style="color:var(--text-muted); padding: 1rem;">🔄 Calling external API for "${skillName}" tutorials...</p>`;
-
-  try {
-    const cleanQuery = skillName.split("/")[0].split("&")[0].trim().toLowerCase().replace(/\s+/g, "-");
-    const response = await fetch(`https://api.github.com/search/repositories?q=${cleanQuery}+tutorial+stars:>50&sort=stars&order=desc&per_page=3`, {
-      headers: { "Accept": "application/vnd.github.v3+json" }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (data.items && data.items.length > 0) {
-      resultContent.innerHTML = data.items.map(item => `
-        <div style="background: #fff; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-weight: 700; color: var(--navy); font-size: 0.9rem;">⭐ ${item.full_name} (${item.stargazers_count} stars)</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted);">${item.description || 'Open source curriculum & code examples.'}</div>
-          </div>
-          <a href="${item.html_url}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; text-decoration:none;">View ↗</a>
-        </div>
-      `).join("");
-      showToast("Live external learning data fetched!");
-    } else {
-      throw new Error("No live repositories found");
-    }
-  } catch (err) {
-    // Robust fallback if offline or rate limited by GitHub API
-    console.warn("Live API call fallback:", err);
-    resultContent.innerHTML = `
-      <div style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; color: #1E40AF;">
-        <strong>📡 Live Query Response (Curated Fallback):</strong>
-        <p style="margin-top: 0.25rem;">Live data stream connected. Recommended official technical track: <a href="https://devdocs.io/#q=${encodeURIComponent(skillName)}" target="_blank" style="color:#2563EB; font-weight:700;">Open DevDocs Reference for ${skillName} ↗</a></p>
-      </div>
-    `;
-  }
 }
 
 // ============================================================
@@ -908,10 +844,30 @@ function renderGlobalHeatmap() {
 
   tbody.innerHTML = "";
 
+  // "Focus role" filter: float the selected role's core skills to the top.
+  // 'all' keeps the natural SKILLS order and treats nothing as de-emphasised.
+  const focusRole = appState.heatmapRoleFilter === "all"
+    ? null
+    : ROLES.find(r => String(r.id) === String(appState.heatmapRoleFilter));
+  const focusSkillNames = focusRole ? focusRole.coreSkills.map(cs => cs.skillName) : [];
+
+  const orderedSkills = focusRole
+    ? [...SKILLS].sort((a, b) => {
+        const ai = focusSkillNames.indexOf(a.name);
+        const bi = focusSkillNames.indexOf(b.name);
+        // Core skills for the role first (in the role's own order), the rest after.
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        return 0;
+      })
+    : SKILLS;
+
   // Evaluate each skill across all consultants
-  SKILLS.forEach(skill => {
+  orderedSkills.forEach(skill => {
     let totalGapForSkill = 0;
     let relevantCount = 0;
+    const isFocusSkill = focusRole ? focusSkillNames.includes(skill.name) : true;
 
     const cellsHtml = consultants.map(c => {
       const role = ROLES.find(r => r.id === c.roleId) || ROLES[0];
@@ -938,8 +894,13 @@ function renderGlobalHeatmap() {
     }
 
     const tr = document.createElement("tr");
+    // De-emphasise skills that aren't core to the focused role.
+    if (!isFocusSkill) tr.style.opacity = "0.4";
+    const skillLabel = isFocusSkill && focusRole
+      ? `${skill.name} <span class="target-badge role-target" style="font-size:0.6rem; padding:1px 5px;">Core</span>`
+      : skill.name;
     tr.innerHTML = `
-      <td style="font-weight:600; color:var(--navy);">${skill.name}</td>
+      <td style="font-weight:600; color:var(--navy);">${skillLabel}</td>
       ${cellsHtml}
       <td>${gapPill}</td>
     `;
@@ -996,17 +957,6 @@ function renderAdminTargetReviewTable() {
     `;
     tbody.appendChild(tr);
   });
-}
-
-// ============================================================
-// Pitch Deck / Hackathon Helper
-// ============================================================
-function openPitchModal() {
-  document.getElementById("pitch-modal").classList.add("active");
-}
-
-function closePitchModal() {
-  document.getElementById("pitch-modal").classList.remove("active");
 }
 
 // ============================================================

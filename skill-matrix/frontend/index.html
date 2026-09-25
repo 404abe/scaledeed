@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ten10 Skills Matrix Platform | Hackathon 2026</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/svg+xml" href="assets/ten10-logo.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/scale-factory-logo.svg">
 </head>
 <body>
 
   <!-- Top Navigation Header -->
   <header class="header">
     <div class="brand">
-      <img src="assets/ten10-logo.svg" alt="Ten10 Logo" class="brand-logo">
+      <img src="assets/scale-factory-logo.svg" alt="Scale Factory Logo" class="brand-logo">
       <div class="brand-title-wrap">
         <div class="brand-title">Skills Matrix Roadmap</div>
         <div class="brand-subtitle">Scale Factory Hackathon v1.0</div>
@@ -34,13 +34,6 @@
       <div id="auth-user-badge-container"></div>
       <button class="btn btn-primary" id="btn-open-auth" style="font-size: 0.82rem; padding: 0.45rem 0.85rem; display:none;">
         🔐 Log In / Sign Up
-      </button>
-
-      <button class="btn btn-outline" id="btn-pitch-guide" style="color:#CBD5E1; border-color: rgba(255,255,255,0.2);">
-        🎤 5-Min Pitch Guide
-      </button>
-      <button class="btn btn-secondary" id="btn-reset-demo" style="background: rgba(255,255,255,0.1); color: #fff;">
-        ↺ Reload Data
       </button>
     </div>
   </header>
@@ -229,6 +222,15 @@
               Visualizes cross-team capabilities and flags collective vulnerabilities.
             </p>
           </div>
+          <div style="display:flex; align-items:center; gap: 0.5rem; font-size: 0.8rem;">
+            <label for="heatmap-role-filter" style="color: var(--text-muted);">Focus role:</label>
+            <select id="heatmap-role-filter" class="role-select" style="font-size: 0.8rem; padding: 0.3rem 0.5rem;">
+              <option value="all">All skills</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-header" style="margin-top: 0.5rem;">
+          <div></div>
           <div style="display:flex; align-items:center; gap: 0.5rem; font-size: 0.78rem;">
             <span>Scale:</span>
             <span class="heat-0" style="padding:2px 6px; border-radius:4px;">0: None</span>
@@ -380,70 +382,10 @@
 
         <!-- Curated Learning Resources -->
         <div id="learning-resources-list"></div>
-
-        <!-- Third Party Live API Section (Hackathon constraint) -->
-        <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px dashed var(--border-color);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
-            <div>
-              <strong style="font-size: 0.9rem; color: var(--navy);">📡 Live Third-Party Learning Feed</strong>
-              <div style="font-size: 0.78rem; color: var(--text-muted);">Real-time queries to public engineering repositories & tutorials</div>
-            </div>
-            <button class="btn btn-primary" id="btn-fetch-live-api" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
-              ⚡ Fetch Live API Data
-            </button>
-          </div>
-          <div id="live-api-results-box" style="display:none;">
-            <div id="live-api-results"></div>
-          </div>
-        </div>
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeLearningModal()">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================
-       MODAL 3: 5-MINUTE PITCH GUIDE (HACKATHON HELPER)
-       ======================================================== -->
-  <div class="modal-backdrop" id="pitch-modal">
-    <div class="modal-card" style="max-width: 760px;">
-      <div class="modal-header">
-        <div class="modal-title">🎤 5-Minute Pitch Deck & Judge Walkthrough</div>
-        <button class="close-modal-btn" id="btn-close-pitch-modal">&times;</button>
-      </div>
-
-      <div class="modal-body" style="line-height: 1.6; font-size: 0.92rem;">
-        <div style="background: var(--info-bg); border-left: 4px solid var(--info); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
-          <strong>🎯 The 5-Minute Hackathon Formula:</strong>
-          1 min Problem & Vision → 2 min Live Demo → 1 min Technical Architecture & Schema → 1 min Judge Q&A.
-        </div>
-
-        <h4 style="color: var(--navy); margin-bottom: 0.4rem;">1. The Problem & Vision</h4>
-        <p style="color: var(--text-muted); margin-bottom: 1rem;">
-          Consultants lack clear, role-specific roadmaps ("Where am I now and how do I level up?"), while Academy Leads fly blind without visibility into the team's collective skill vulnerabilities.
-        </p>
-
-        <h4 style="color: var(--navy); margin-bottom: 0.4rem;">2. Live Demo Highlights</h4>
-        <ul style="color: var(--text-muted); margin-left: 1.5rem; margin-bottom: 1rem;">
-          <li><strong>Role Selection & Core Top-5:</strong> Switch between Developer, QA, Scrum Master with instant target recalculation.</li>
-          <li><strong>Real-time Progress Sliders:</strong> Update level, watch gap badge react immediately, and persist via LocalStorage.</li>
-          <li><strong>SMART Targeter:</strong> Converts any gap into an actionable 5-part goal with deadline and remaining days.</li>
-          <li><strong>The Learning Bridge:</strong> Direct links to LinkedIn Learning, YouTube, and live GitHub API data.</li>
-          <li><strong>Academy Lead Heatmap:</strong> Cross-team matrix identifying collective deficit gaps.</li>
-        </ul>
-
-        <h4 style="color: var(--navy); margin-bottom: 0.4rem;">3. Technical Highlights & The "Explain-Back" Rule</h4>
-        <ul style="color: var(--text-muted); margin-left: 1.5rem; margin-bottom: 1rem;">
-          <li><strong>PostgreSQL / Supabase Schema:</strong> 3NF normalized tables with composite primary keys and automated gap views (`skill_gap_view`, `employee_goal_progress`).</li>
-          <li><strong>Zero Black-Box Code:</strong> Clean vanilla ES6 architecture with modular data stores, event delegation, and real-time state synchronization.</li>
-          <li><strong>Live API Integration:</strong> Direct asynchronous fetch to public developer repositories with resilient fallback.</li>
-        </ul>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" onclick="closePitchModal()">Ready to Pitch!</button>
       </div>
     </div>
   </div>
