@@ -40,15 +40,15 @@
         🎤 5-Min Pitch Guide
       </button>
       <button class="btn btn-secondary" id="btn-reset-demo" style="background: rgba(255,255,255,0.1); color: #fff;">
-        ↺ Reset Demo
+        ↺ Reload Data
       </button>
     </div>
   </header>
 
   <main class="container">
 
-    <!-- Top Role & Consultant Bar -->
-    <section class="control-bar">
+    <!-- Top Role & Consultant Bar (consultant view only) -->
+    <section class="control-bar" id="control-bar">
       <div class="selector-group">
         <div>
           <label class="control-label" for="consultant-select">Active Consultant</label>
@@ -104,26 +104,6 @@
             <div class="progress-bar-bg">
               <div class="progress-fill" id="banner-readiness-bar" style="width: 0%;"></div>
             </div>
-          </div>
-        </div>
-
-        <div class="metric-card">
-          <div class="mini-stat-title">Target Progression</div>
-          <div class="mini-stat-number" style="color: var(--primary);">Level 0 → 5</div>
-          <div class="mini-stat-sub">1: Foundational • 3: Proficient • 5: Expert</div>
-          <div style="margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">
-            Moving up levels directly increases client billability and promotional readiness.
-          </div>
-        </div>
-
-        <div class="metric-card">
-          <div class="mini-stat-title">Storage & Persistence</div>
-          <div class="mini-stat-number" style="color: var(--success); font-size: 1.6rem; margin-top: 1rem;">
-            💾 Local & DB
-          </div>
-          <div class="mini-stat-sub">Instant LocalStorage + Supabase Schema Ready</div>
-          <div style="margin-top: 0.75rem; font-size: 0.78rem; color: var(--text-muted);">
-            Changes persist across page reloads automatically.
           </div>
         </div>
       </section>
@@ -497,7 +477,7 @@
 
           <div class="form-group">
             <label class="form-label" for="login-password">Password</label>
-            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required value="password123">
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required value="password1">
           </div>
 
           <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem; margin-top: 0.5rem;">
@@ -571,6 +551,10 @@
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Scripts -->
+  <!-- Supabase JS client (UMD build → exposes global `supabase`) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="db.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>

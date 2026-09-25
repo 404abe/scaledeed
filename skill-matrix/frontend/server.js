@@ -36,6 +36,17 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Ten10 Skills Matrix Platform running at http://localhost:${PORT}`);
+// Bind to 0.0.0.0 so other devices on the same WiFi/LAN can reach it.
+server.listen(PORT, '0.0.0.0', () => {
+  const os = require('os');
+  const nets = os.networkInterfaces();
+  const lanIps = [];
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) lanIps.push(net.address);
+    }
+  }
+  console.log(`Ten10 Skills Matrix Platform running:`);
+  console.log(`  • On this machine:  http://localhost:${PORT}`);
+  lanIps.forEach(ip => console.log(`  • On the network:   http://${ip}:${PORT}`));
 });

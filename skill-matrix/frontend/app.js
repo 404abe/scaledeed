@@ -20,76 +20,95 @@ let appState = {
 };
 
 // ============================================================
-// Initialization & LocalStorage Persistence
+// Initialization — loads all data from Supabase (see db.js)
 // ============================================================
-function initApp() {
-  loadPersistedState();
+async function initApp() {
   setupEventListeners();
+
+  // 1. Connect to Supabase
+  if (!SkillMatrixDB.isConfigured() || !SkillMatrixDB.init()) {
+    showFatalError(
+      "Supabase is not configured. Add your Project URL and anon key to " +
+      "<strong>frontend/supabase-config.js</strong>, then reload."
+    );
+    return;
+  }
+
+  // 2. Load reference data + consultants from the database
+  try {
+    await SkillMatrixDB.loadReference();          // fills SKILL_CATEGORIES, SKILLS, ROLES
+    appState.consultants = await SkillMatrixDB.loadConsultants();
+  } catch (err) {
+    console.error("Failed to load data from Supabase:", err);
+    showFatalError(
+      "Could not load data from Supabase. Make sure <strong>supabase_setup.sql</strong> " +
+      "has been run and your credentials are correct.<br><small>" +
+      (err.message || err) + "</small>"
+    );
+    return;
+  }
+
+  // 3. Restore local UI prefs + logged-in session
+  restoreUiState();
+  restoreSession();
   populateDropdowns();
+
+  // 4. Decide who to show
+  if (!appState.currentUser) {
+    if (appState.consultants.length > 0) {
+      appState.currentUser = appState.consultants[0];
+      appState.activeConsultantId = appState.currentUser.id;
+      appState.activeRoleId = appState.currentUser.roleId;
+    } else {
+      // Empty DB (team seed block skipped) — prompt sign-up.
+      renderAuthBadge();
+      openAuthModal("signup");
+      showToast("No accounts yet — create one to get started.");
+      return;
+    }
+  }
+
   renderApp();
 }
 
-/**
- * Loads state from LocalStorage or falls back to seed data from data.js
- */
-function loadPersistedState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      appState.consultants = parsed.consultants || INITIAL_CONSULTANTS;
-      appState.activeConsultantId = parsed.activeConsultantId || 1;
-      appState.activeRoleId = parsed.activeRoleId || 1;
-      appState.coreOnly = parsed.coreOnly !== undefined ? parsed.coreOnly : true;
-    } catch (e) {
-      console.warn("Could not parse saved state, loading defaults", e);
-      appState.consultants = JSON.parse(JSON.stringify(INITIAL_CONSULTANTS));
-    }
-  } else {
-    appState.consultants = JSON.parse(JSON.stringify(INITIAL_CONSULTANTS));
-  }
+/** UI preferences (view/filter toggles) persisted locally — not app data. */
+function restoreUiState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    if (saved.coreOnly !== undefined) appState.coreOnly = saved.coreOnly;
+  } catch (e) { /* ignore malformed prefs */ }
+}
 
-  // Restore active user session from LocalStorage
+/** Restore the logged-in user from a saved session, matched against DB users. */
+function restoreSession() {
   const savedSession = localStorage.getItem(SESSION_KEY);
-  if (savedSession) {
-    try {
-      const sessionData = JSON.parse(savedSession);
-      const foundUser = appState.consultants.find(c => 
-        c.id === sessionData.id || 
-        (c.username && sessionData.username && c.username.toLowerCase() === sessionData.username.toLowerCase()) ||
-        (c.email && sessionData.email && c.email.toLowerCase() === sessionData.email.toLowerCase())
-      );
-      if (foundUser) {
-        appState.currentUser = foundUser;
-        appState.activeConsultantId = foundUser.id;
-        appState.activeRoleId = foundUser.roleId;
-      }
-    } catch (e) {
-      console.warn("Error restoring session", e);
+  if (!savedSession) return;
+  try {
+    const s = JSON.parse(savedSession);
+    const user = appState.consultants.find(c =>
+      c.id === s.id ||
+      (c.username && s.username && c.username.toLowerCase() === s.username.toLowerCase()) ||
+      (c.email && s.email && c.email.toLowerCase() === s.email.toLowerCase())
+    );
+    if (user) {
+      appState.currentUser = user;
+      appState.activeConsultantId = user.id;
+      appState.activeRoleId = user.roleId;
     }
-  }
-
-  // Default to first user (Abe) if no user logged in
-  if (!appState.currentUser && appState.consultants.length > 0) {
-    appState.currentUser = appState.consultants[0]; // Abe
-    appState.activeConsultantId = appState.currentUser.id;
-    appState.activeRoleId = appState.currentUser.roleId;
+  } catch (e) {
+    console.warn("Error restoring session", e);
   }
 }
 
 /**
- * Persists the current state to LocalStorage
+ * Persists only UI prefs + the active session locally.
+ * All consultant data now lives in Supabase (written through on each change).
  */
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    consultants: appState.consultants,
-    activeConsultantId: appState.activeConsultantId,
-    activeRoleId: appState.activeRoleId,
-    coreOnly: appState.coreOnly
-  }));
-
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ coreOnly: appState.coreOnly }));
   if (appState.currentUser) {
     localStorage.setItem(SESSION_KEY, JSON.stringify({
+      username: appState.currentUser.username,
       email: appState.currentUser.email,
       id: appState.currentUser.id
     }));
@@ -97,20 +116,40 @@ function saveState() {
 }
 
 /**
- * Resets state back to original demo seeds
+ * Reloads all consultant data fresh from Supabase (discarding any local view).
  */
-function resetDemoData() {
-  if (confirm("Reset all consultant skill levels and SMART goals to initial demo data?")) {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SESSION_KEY);
-    appState.consultants = JSON.parse(JSON.stringify(INITIAL_CONSULTANTS));
-    appState.currentUser = appState.consultants[0]; // Abe
-    appState.activeConsultantId = 1;
-    appState.activeRoleId = 1;
-    saveState();
-    renderApp();
-    showToast("Reset to initial demo data successfully.");
+async function resetDemoData() {
+  if (!confirm("Reload all consultant data from the Supabase database?")) return;
+  try {
+    appState.consultants = await SkillMatrixDB.loadConsultants();
+    if (appState.currentUser) {
+      const refreshed = appState.consultants.find(c => c.id === appState.currentUser.id);
+      appState.currentUser = refreshed || appState.consultants[0] || null;
+      if (appState.currentUser) {
+        appState.activeConsultantId = appState.currentUser.id;
+        appState.activeRoleId = appState.currentUser.roleId;
+      }
+    }
+    populateDropdowns();
+    if (appState.activeView === "admin") renderAdminDashboard();
+    else renderApp();
+    showToast("Reloaded from database.");
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to reload from database.");
   }
+}
+
+/** Renders a blocking error message into the main area. */
+function showFatalError(message) {
+  const grid = document.getElementById("skills-matrix-grid");
+  const html = `
+    <div style="grid-column:1/-1; text-align:center; padding:2.5rem; background:#FEF2F2; border:1px solid #FECACA; border-radius:12px; color:#991B1B;">
+      <div style="font-size:1.5rem; margin-bottom:0.5rem;">⚠️ Connection Problem</div>
+      <p style="max-width:640px; margin:0.5rem auto 0;">${message}</p>
+    </div>`;
+  if (grid) grid.innerHTML = html;
+  showToast("Supabase connection problem — see the page for details.");
 }
 
 // ============================================================
@@ -134,11 +173,17 @@ function setupEventListeners() {
   });
 
   // Role Dropdown Switcher
-  document.getElementById("role-select").addEventListener("change", (e) => {
+  document.getElementById("role-select").addEventListener("change", async (e) => {
     appState.activeRoleId = parseInt(e.target.value, 10);
     const consultant = getCurrentConsultant();
     if (consultant) {
       consultant.roleId = appState.activeRoleId;
+      try {
+        await SkillMatrixDB.updateEmployeeRole(consultant.id, appState.activeRoleId);
+      } catch (err) {
+        console.error(err);
+        showToast("Could not save role change to the database.");
+      }
     }
     saveState();
     renderApp();
@@ -204,6 +249,10 @@ function switchView(viewName) {
   document.getElementById("consultant-view-container").style.display = viewName === "consultant" ? "block" : "none";
   document.getElementById("admin-view-container").style.display = viewName === "admin" ? "block" : "none";
 
+  // The consultant/role selectors + per-person stats only make sense on the consultant view.
+  const controlBar = document.getElementById("control-bar");
+  if (controlBar) controlBar.style.display = viewName === "consultant" ? "flex" : "none";
+
   if (viewName === "admin") {
     renderAdminDashboard();
   } else {
@@ -263,6 +312,9 @@ function renderApp() {
   // Update User Profile Badge in Header
   renderAuthBadge();
 
+  // Guard: nothing to render if there are no consultants yet (empty DB)
+  if (!consultant) return;
+
   // Update Top Banner
   document.getElementById("banner-consultant-name").textContent = consultant.name;
   document.getElementById("banner-role-name").textContent = role.name;
@@ -293,6 +345,23 @@ function renderApp() {
 
   renderSkillMatrix();
   renderConsultantGoalsTable();
+}
+
+/**
+ * Builds the gap/target badge markup for a skill card.
+ * Carries an id so it can be refreshed live when the slider moves,
+ * without re-rendering the whole matrix.
+ */
+function buildGapBadgeHtml(skillId, targetLevel, actualLevel) {
+  const id = `gap-badge-${skillId}`;
+  if (targetLevel === null) {
+    return `<span id="${id}" class="target-badge role-target">Elective Skill</span>`;
+  }
+  const gap = actualLevel - targetLevel;
+  if (gap >= 0) {
+    return `<span id="${id}" class="target-badge target-met">✓ Target Met (${actualLevel}/${targetLevel})</span>`;
+  }
+  return `<span id="${id}" class="target-badge gap-negative">Gap: ${gap} (${actualLevel}/${targetLevel})</span>`;
 }
 
 /**
@@ -336,17 +405,7 @@ function renderSkillMatrix() {
     const category = SKILL_CATEGORIES.find(c => c.id === skill.categoryId);
     const existingGoal = consultant.goals ? consultant.goals.find(g => g.skillName === skill.name) : null;
 
-    let gapBadge = "";
-    if (targetLevel !== null) {
-      const gap = actualLevel - targetLevel;
-      if (gap >= 0) {
-        gapBadge = `<span class="target-badge target-met">✓ Target Met (${actualLevel}/${targetLevel})</span>`;
-      } else {
-        gapBadge = `<span class="target-badge gap-negative">Gap: ${gap} (${actualLevel}/${targetLevel})</span>`;
-      }
-    } else {
-      gapBadge = `<span class="target-badge role-target">Elective Skill</span>`;
-    }
+    const gapBadge = buildGapBadgeHtml(skill.id, targetLevel, actualLevel);
 
     const card = document.createElement("div");
     card.className = `skill-card ${isCore ? "is-core" : ""}`;
@@ -409,16 +468,34 @@ function renderSkillMatrix() {
 
 function updateConsultantSkillLevel(skillName, newLevel) {
   const consultant = getCurrentConsultant();
+  const role = getCurrentRole();
   consultant.skills[skillName] = newLevel;
 
-  // Check if any SMART goal for this skill is now met!
+  // Refresh this skill's gap badge live (no full re-render, so the slider stays smooth)
+  const skill = SKILLS.find(s => s.name === skillName);
+  if (skill) {
+    const coreInfo = role.coreSkills.find(c => c.skillName === skillName);
+    const targetLevel = coreInfo ? coreInfo.targetLevel : null;
+    const badge = document.getElementById(`gap-badge-${skill.id}`);
+    if (badge) badge.outerHTML = buildGapBadgeHtml(skill.id, targetLevel, newLevel);
+  }
+
+  // Persist the level to Supabase (write-through; errors surfaced via toast)
+  SkillMatrixDB.setSkillLevel(consultant.id, skillName, newLevel)
+    .catch(err => { console.error(err); showToast("Could not save skill level."); });
+
+  // Check if any SMART goal for this skill is now met (and persist the flip)
   if (consultant.goals) {
     consultant.goals.forEach(goal => {
       if (goal.skillName === skillName) {
+        const prev = goal.status;
         if (newLevel >= goal.goalLevel) {
           goal.status = "met";
         } else if (goal.status === "met" && newLevel < goal.goalLevel) {
           goal.status = "on-track";
+        }
+        if (goal.status !== prev) {
+          SkillMatrixDB.saveGoal(consultant.id, goal).catch(err => console.error(err));
         }
       }
     });
@@ -512,14 +589,20 @@ function renderConsultantGoalsTable() {
   });
 }
 
-function deleteGoal(goalId) {
+async function deleteGoal(goalId) {
   const consultant = getCurrentConsultant();
-  if (confirm("Remove this SMART goal?")) {
+  if (!confirm("Remove this SMART goal?")) return;
+  try {
+    await SkillMatrixDB.deleteGoal(goalId);
     consultant.goals = consultant.goals.filter(g => g.id !== goalId);
-    saveState();
-    renderApp();
-    showToast("SMART goal removed.");
+  } catch (err) {
+    console.error(err);
+    showToast("Could not remove the goal from the database.");
+    return;
   }
+  saveState();
+  renderApp();
+  showToast("SMART goal removed.");
 }
 
 // ============================================================
@@ -575,7 +658,7 @@ function generateSmartTargetBreakdown(skillName, currentLvl, targetLvl, roleName
   };
 }
 
-function handleSaveSmartGoal(e) {
+async function handleSaveSmartGoal(e) {
   e.preventDefault();
   const consultant = getCurrentConsultant();
   const skillName = document.getElementById("smart-skill-name").value;
@@ -589,9 +672,7 @@ function handleSaveSmartGoal(e) {
 
   if (!consultant.goals) consultant.goals = [];
 
-  const existingIdx = consultant.goals.findIndex(g => g.skillName === skillName);
   const goalObj = {
-    id: existingIdx >= 0 ? consultant.goals[existingIdx].id : "goal-" + Date.now(),
     skillName,
     goalLevel,
     targetDate,
@@ -603,10 +684,21 @@ function handleSaveSmartGoal(e) {
     timeBound
   };
 
+  let saved;
+  try {
+    // Upsert to Supabase (one goal per employee+skill); returns row with real id
+    saved = await SkillMatrixDB.saveGoal(consultant.id, goalObj);
+  } catch (err) {
+    console.error(err);
+    showToast("Could not save the SMART goal to the database.");
+    return;
+  }
+
+  const existingIdx = consultant.goals.findIndex(g => g.skillName === skillName);
   if (existingIdx >= 0) {
-    consultant.goals[existingIdx] = goalObj;
+    consultant.goals[existingIdx] = saved;
   } else {
-    consultant.goals.push(goalObj);
+    consultant.goals.push(saved);
   }
 
   saveState();
@@ -728,7 +820,7 @@ function renderAdminDashboard() {
     totalGoals += c.goals ? c.goals.length : 0;
   });
 
-  const avgReadiness = Math.round((totalReadiness / consultants.length) * 100);
+  const avgReadiness = consultants.length ? Math.round((totalReadiness / consultants.length) * 100) : 0;
   document.getElementById("admin-total-consultants").textContent = consultants.length;
   document.getElementById("admin-avg-readiness").textContent = `${avgReadiness}%`;
   document.getElementById("admin-total-gaps").textContent = totalGaps;
@@ -991,7 +1083,7 @@ function handleLoginForm(e) {
   }
 
   if (user.password && user.password !== password) {
-    errBox.textContent = "Incorrect password. (Hint: default demo password is 'password123')";
+    errBox.textContent = "Incorrect password. (Hint: default demo password is 'password1')";
     errBox.style.display = "block";
     return;
   }
@@ -1000,7 +1092,7 @@ function handleLoginForm(e) {
   executeLogin(user);
 }
 
-function handleSignupForm(e) {
+async function handleSignupForm(e) {
   e.preventDefault();
   const name = document.getElementById("signup-name").value.trim();
   const usernameInput = document.getElementById("signup-username");
@@ -1031,25 +1123,23 @@ function handleSignupForm(e) {
   const avatars = ["👩‍💻", "👨‍💻", "🧑‍💻", "🚀", "⚡", "💡"];
   const randomAvatar = isAdmin ? "🎓" : avatars[Math.floor(Math.random() * avatars.length)];
 
-  // Initialize initial core skills at Level 1 (foundational)
+  // Create the employee in Supabase, then seed core skills at Level 1
   const role = ROLES.find(r => r.id === roleId) || ROLES[0];
-  const initialSkills = {};
-  role.coreSkills.forEach(cs => {
-    initialSkills[cs.skillName] = 1;
-  });
-
-  const newUser = {
-    id: Date.now(),
-    name,
-    username,
-    email,
-    password,
-    roleId,
-    isAdmin,
-    avatar: randomAvatar,
-    skills: initialSkills,
-    goals: []
-  };
+  let newUser;
+  try {
+    newUser = await SkillMatrixDB.createEmployee({
+      name, username, email, password, roleId, isAdmin, avatar: randomAvatar
+    });
+    for (const cs of role.coreSkills) {
+      await SkillMatrixDB.setSkillLevel(newUser.id, cs.skillName, 1);
+      newUser.skills[cs.skillName] = 1;
+    }
+  } catch (err) {
+    console.error(err);
+    errBox.textContent = "Could not create your account: " + (err.message || err);
+    errBox.style.display = "block";
+    return;
+  }
 
   appState.consultants.push(newUser);
   saveState();
