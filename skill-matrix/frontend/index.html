@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ten10 Skills Matrix Platform | Hackathon 2026</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="assets/ten10-logo.svg">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="header">
+    <div class="brand">
+      <img src="assets/ten10-logo.svg" alt="Ten10 Logo" class="brand-logo">
+      <div class="brand-title-wrap">
+        <div class="brand-title">Skills Matrix Roadmap</div>
+        <div class="brand-subtitle">Scale Factory Hackathon v1.0</div>
+      </div>
+    </div>
+
+    <!-- Persona Views Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab-btn active" id="tab-consultant">
+        <span>👤</span> Consultant View
+      </button>
+      <button class="nav-tab-btn" id="tab-admin">
+        <span>📊</span> Academy Lead View (Admin)
+      </button>
+    </nav>
+
+    <div class="header-actions">
+      <!-- User Profile Badge & Logout / Login -->
+      <div id="auth-user-badge-container"></div>
+      <button class="btn btn-primary" id="btn-open-auth" style="font-size: 0.82rem; padding: 0.45rem 0.85rem; display:none;">
+        🔐 Log In / Sign Up
+      </button>
+
+      <button class="btn btn-outline" id="btn-pitch-guide" style="color:#CBD5E1; border-color: rgba(255,255,255,0.2);">
+        🎤 5-Min Pitch Guide
+      </button>
+      <button class="btn btn-secondary" id="btn-reset-demo" style="background: rgba(255,255,255,0.1); color: #fff;">
+        ↺ Reset Demo
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Top Role & Consultant Bar -->
+    <section class="control-bar">
+      <div class="selector-group">
+        <div>
+          <label class="control-label" for="consultant-select">Active Consultant</label>
+          <select id="consultant-select" class="select-styled"></select>
+        </div>
+
+        <div>
+          <label class="control-label" for="role-select">Target Career Role</label>
+          <select id="role-select" class="select-styled"></select>
+        </div>
+      </div>
+
+      <div class="quick-stats-badge">
+        <div class="stat-item">
+          <span class="stat-value" id="metric-readiness">0%</span>
+          <span class="stat-label">Role Readiness</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="metric-gaps" style="color: var(--danger);">0</span>
+          <span class="stat-label">Identified Gaps</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="metric-active-goals" style="color: var(--accent-blue);">0</span>
+          <span class="stat-label">SMART Targets</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         PERSONA A: THE CONSULTANT VIEW (USER ROADMAP)
+         ======================================================== -->
+    <div id="consultant-view-container">
+      
+      <!-- Role Overview Banner -->
+      <section class="overview-grid">
+        <div class="metric-card role-banner-card">
+          <div>
+            <div class="badge-tag" style="display:inline-flex; margin-bottom: 0.75rem;">
+              <span>🎯</span> Career Progression Roadmap
+            </div>
+            <h2 class="banner-role-title">
+              <span id="banner-consultant-name">Consultant</span> → <span id="banner-role-name">Developer</span>
+            </h2>
+            <p class="banner-desc" id="banner-role-desc">
+              Track your actual skills against role requirements, bridge gaps with SMART targets, and access curated learning resources.
+            </p>
+          </div>
+          <div>
+            <div class="progress-header">
+              <span>Core Role Competency Target</span>
+              <span id="banner-readiness-pct">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-fill" id="banner-readiness-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="mini-stat-title">Target Progression</div>
+          <div class="mini-stat-number" style="color: var(--primary);">Level 0 → 5</div>
+          <div class="mini-stat-sub">1: Foundational • 3: Proficient • 5: Expert</div>
+          <div style="margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">
+            Moving up levels directly increases client billability and promotional readiness.
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="mini-stat-title">Storage & Persistence</div>
+          <div class="mini-stat-number" style="color: var(--success); font-size: 1.6rem; margin-top: 1rem;">
+            💾 Local & DB
+          </div>
+          <div class="mini-stat-sub">Instant LocalStorage + Supabase Schema Ready</div>
+          <div style="margin-top: 0.75rem; font-size: 0.78rem; color: var(--text-muted);">
+            Changes persist across page reloads automatically.
+          </div>
+        </div>
+      </section>
+
+      <!-- Category Filter Pills & Core Toggle -->
+      <section class="filter-bar">
+        <div class="category-pills">
+          <button class="pill-btn active" data-category="All">All Categories</button>
+          <button class="pill-btn" data-category="Technical">Technical</button>
+          <button class="pill-btn" data-category="Analytical">Analytical</button>
+          <button class="pill-btn" data-category="Consulting-Specific">Consulting</button>
+          <button class="pill-btn" data-category="Soft Skills">Soft Skills</button>
+          <button class="pill-btn" data-category="Domain-Specific">Domain</button>
+        </div>
+
+        <div class="toggle-switch-wrap">
+          <span>Show Core Role Skills Only (Top 5)</span>
+          <label class="switch">
+            <input type="checkbox" id="core-toggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- The Skills Matrix Grid -->
+      <section id="skills-matrix-grid" class="matrix-grid"></section>
+
+      <!-- Consultant Active SMART Goals Table -->
+      <section class="goals-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <span>🎯</span> Personal SMART Targets & Progress
+          </h3>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">
+            Auto-calculated time remaining & status
+          </span>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="goals-table">
+            <thead>
+              <tr>
+                <th>Skill</th>
+                <th>Current</th>
+                <th>Target</th>
+                <th>Target Date</th>
+                <th>Days Remaining</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="goals-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ========================================================
+         PERSONA B: ACADEMY LEAD VIEW (ADMIN DASHBOARD)
+         ======================================================== -->
+    <div id="admin-view-container" class="admin-view">
+      
+      <!-- Top Metrics for Academy Lead -->
+      <section class="overview-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 2rem;">
+        <div class="metric-card">
+          <div class="mini-stat-title">Registered Consultants</div>
+          <div class="mini-stat-number" id="admin-total-consultants">0</div>
+          <div class="mini-stat-sub">Across 6 tech career paths</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="mini-stat-title">Average Core Readiness</div>
+          <div class="mini-stat-number" id="admin-avg-readiness" style="color: var(--primary);">0%</div>
+          <div class="mini-stat-sub">Team-wide target competency</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="mini-stat-title">Collective Skill Gaps</div>
+          <div class="mini-stat-number" id="admin-total-gaps" style="color: var(--danger);">0</div>
+          <div class="mini-stat-sub">Skills below required role target</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="mini-stat-title">Active SMART Goals</div>
+          <div class="mini-stat-number" id="admin-total-goals" style="color: var(--accent-blue);">0</div>
+          <div class="mini-stat-sub">Time-bound commitments</div>
+        </div>
+      </section>
+
+      <!-- Registered Consultants Table -->
+      <section class="goals-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <span>👥</span> Consultant Talent Roster & Readiness
+          </h3>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Click "View Roadmap" to inspect individual consultant</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="goals-table">
+            <thead>
+              <tr>
+                <th>Consultant</th>
+                <th>Current Role</th>
+                <th style="min-width: 180px;">Role Readiness</th>
+                <th>Target Gaps</th>
+                <th>SMART Goals</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-consultants-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Global Skills Heatmap (Vision: What is the collective skill gap of my entire team?) -->
+      <section class="heatmap-card" style="margin-bottom: 2rem;">
+        <div class="section-header">
+          <div>
+            <h3 class="section-title">
+              <span>🗺️</span> Global Skills Heatmap
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+              Visualizes cross-team capabilities and flags collective vulnerabilities.
+            </p>
+          </div>
+          <div style="display:flex; align-items:center; gap: 0.5rem; font-size: 0.78rem;">
+            <span>Scale:</span>
+            <span class="heat-0" style="padding:2px 6px; border-radius:4px;">0: None</span>
+            <span class="heat-1" style="padding:2px 6px; border-radius:4px;">1</span>
+            <span class="heat-2" style="padding:2px 6px; border-radius:4px;">2</span>
+            <span class="heat-3" style="padding:2px 6px; border-radius:4px;">3</span>
+            <span class="heat-4" style="padding:2px 6px; border-radius:4px;">4</span>
+            <span class="heat-5" style="padding:2px 6px; border-radius:4px;">5: Expert</span>
+          </div>
+        </div>
+
+        <table class="heatmap-table">
+          <thead id="heatmap-thead"></thead>
+          <tbody id="heatmap-tbody"></tbody>
+        </table>
+      </section>
+
+      <!-- Admin SMART Target Review -->
+      <section class="goals-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <span>🎯</span> Academy SMART Target Review
+          </h3>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Monitor all personal commitments across the cohort</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="goals-table">
+            <thead>
+              <tr>
+                <th>Consultant</th>
+                <th>Skill</th>
+                <th>Target Level</th>
+                <th>Target Date</th>
+                <th>Days Remaining</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="admin-targets-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- ========================================================
+       MODAL 1: SMART TARGETER
+       ======================================================== -->
+  <div class="modal-backdrop" id="smart-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🎯 SMART Target Generator</div>
+        <button class="close-modal-btn" id="btn-close-smart-modal">&times;</button>
+      </div>
+
+      <form id="smart-goal-form">
+        <div class="modal-body">
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <label class="form-label">Skill</label>
+              <input type="text" id="smart-skill-name" class="form-control" readonly style="background:#F1F5F9; font-weight:700;">
+            </div>
+            <div>
+              <label class="form-label">Target Level</label>
+              <select id="smart-target-level" class="form-control">
+                <option value="1">Level 1 (Foundational)</option>
+                <option value="2">Level 2 (Developing)</option>
+                <option value="3">Level 3 (Proficient)</option>
+                <option value="4">Level 4 (Advanced)</option>
+                <option value="5">Level 5 (Expert)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Target Date</label>
+              <input type="date" id="smart-target-date" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="smart-breakdown-card">
+            <!-- S -->
+            <div class="smart-letter-row">
+              <div class="smart-letter-badge">S</div>
+              <div class="smart-letter-content">
+                <div class="smart-letter-title">Specific</div>
+                <input type="text" id="smart-specific" class="form-control" style="margin-top:4px;" required>
+              </div>
+            </div>
+
+            <!-- M -->
+            <div class="smart-letter-row">
+              <div class="smart-letter-badge">M</div>
+              <div class="smart-letter-content">
+                <div class="smart-letter-title">Measurable</div>
+                <input type="text" id="smart-measurable" class="form-control" style="margin-top:4px;" required>
+              </div>
+            </div>
+
+            <!-- A -->
+            <div class="smart-letter-row">
+              <div class="smart-letter-badge">A</div>
+              <div class="smart-letter-content">
+                <div class="smart-letter-title">Achievable</div>
+                <input type="text" id="smart-achievable" class="form-control" style="margin-top:4px;" required>
+              </div>
+            </div>
+
+            <!-- R -->
+            <div class="smart-letter-row">
+              <div class="smart-letter-badge">R</div>
+              <div class="smart-letter-content">
+                <div class="smart-letter-title">Relevant</div>
+                <input type="text" id="smart-relevant" class="form-control" style="margin-top:4px;" required>
+              </div>
+            </div>
+
+            <!-- T -->
+            <div class="smart-letter-row" style="margin-bottom:0;">
+              <div class="smart-letter-badge">T</div>
+              <div class="smart-letter-content">
+                <div class="smart-letter-title">Time-bound</div>
+                <input type="text" id="smart-timebound" class="form-control" style="margin-top:4px;" required>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-smart">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-smart">Save SMART Target</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL 2: THE LEARNING BRIDGE
+       ======================================================== -->
+  <div class="modal-backdrop" id="learning-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🌉 The Learning Bridge: <span id="learning-modal-skill-title">Skill</span></div>
+        <button class="close-modal-btn" id="btn-close-learning-modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Recommended external courses, documentation, and video deep-dives to bridge your skill gap:
+        </p>
+
+        <!-- Curated Learning Resources -->
+        <div id="learning-resources-list"></div>
+
+        <!-- Third Party Live API Section (Hackathon constraint) -->
+        <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px dashed var(--border-color);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
+            <div>
+              <strong style="font-size: 0.9rem; color: var(--navy);">📡 Live Third-Party Learning Feed</strong>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">Real-time queries to public engineering repositories & tutorials</div>
+            </div>
+            <button class="btn btn-primary" id="btn-fetch-live-api" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+              ⚡ Fetch Live API Data
+            </button>
+          </div>
+          <div id="live-api-results-box" style="display:none;">
+            <div id="live-api-results"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeLearningModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL 3: 5-MINUTE PITCH GUIDE (HACKATHON HELPER)
+       ======================================================== -->
+  <div class="modal-backdrop" id="pitch-modal">
+    <div class="modal-card" style="max-width: 760px;">
+      <div class="modal-header">
+        <div class="modal-title">🎤 5-Minute Pitch Deck & Judge Walkthrough</div>
+        <button class="close-modal-btn" id="btn-close-pitch-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="line-height: 1.6; font-size: 0.92rem;">
+        <div style="background: var(--info-bg); border-left: 4px solid var(--info); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+          <strong>🎯 The 5-Minute Hackathon Formula:</strong>
+          1 min Problem & Vision → 2 min Live Demo → 1 min Technical Architecture & Schema → 1 min Judge Q&A.
+        </div>
+
+        <h4 style="color: var(--navy); margin-bottom: 0.4rem;">1. The Problem & Vision</h4>
+        <p style="color: var(--text-muted); margin-bottom: 1rem;">
+          Consultants lack clear, role-specific roadmaps ("Where am I now and how do I level up?"), while Academy Leads fly blind without visibility into the team's collective skill vulnerabilities.
+        </p>
+
+        <h4 style="color: var(--navy); margin-bottom: 0.4rem;">2. Live Demo Highlights</h4>
+        <ul style="color: var(--text-muted); margin-left: 1.5rem; margin-bottom: 1rem;">
+          <li><strong>Role Selection & Core Top-5:</strong> Switch between Developer, QA, Scrum Master with instant target recalculation.</li>
+          <li><strong>Real-time Progress Sliders:</strong> Update level, watch gap badge react immediately, and persist via LocalStorage.</li>
+          <li><strong>SMART Targeter:</strong> Converts any gap into an actionable 5-part goal with deadline and remaining days.</li>
+          <li><strong>The Learning Bridge:</strong> Direct links to LinkedIn Learning, YouTube, and live GitHub API data.</li>
+          <li><strong>Academy Lead Heatmap:</strong> Cross-team matrix identifying collective deficit gaps.</li>
+        </ul>
+
+        <h4 style="color: var(--navy); margin-bottom: 0.4rem;">3. Technical Highlights & The "Explain-Back" Rule</h4>
+        <ul style="color: var(--text-muted); margin-left: 1.5rem; margin-bottom: 1rem;">
+          <li><strong>PostgreSQL / Supabase Schema:</strong> 3NF normalized tables with composite primary keys and automated gap views (`skill_gap_view`, `employee_goal_progress`).</li>
+          <li><strong>Zero Black-Box Code:</strong> Clean vanilla ES6 architecture with modular data stores, event delegation, and real-time state synchronization.</li>
+          <li><strong>Live API Integration:</strong> Direct asynchronous fetch to public developer repositories with resilient fallback.</li>
+        </ul>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="closePitchModal()">Ready to Pitch!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL 4: AUTHENTICATION (SIGN UP & LOGIN)
+       ======================================================== -->
+  <div class="modal-backdrop" id="auth-modal">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">🔐 Ten10 Consultant Portal</div>
+        <button class="close-modal-btn" id="btn-close-auth-modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Auth Segmented Tabs -->
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab-btn active" id="tab-auth-login">Log In</button>
+          <button type="button" class="auth-tab-btn" id="tab-auth-signup">Create Account (Sign Up)</button>
+        </div>
+
+        <!-- Error Feedback Banner -->
+        <div class="auth-alert-error" id="auth-error-alert"></div>
+
+        <!-- 1. LOGIN FORM -->
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label" for="login-identifier">Username or Work Email</label>
+            <input type="text" id="login-identifier" class="form-control" placeholder="e.g. abraham or abraham.ama@scalefactory.com" required value="abraham">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-password">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required value="password123">
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem; margin-top: 0.5rem;">
+            Log In to Skills Matrix
+          </button>
+
+          <!-- Quick 1-Click Demo Accounts for Judges / Fast Testing -->
+          <div class="quick-login-box">
+            <div class="quick-login-title">⚡ Fast Demo Logins (1-Click for Hackathon Judges)</div>
+            <div class="quick-login-btn-grid">
+              <button type="button" class="quick-login-btn" onclick="quickLogin('abraham')">
+                <span>👨‍💻</span> <span>abraham (Developer)</span>
+              </button>
+              <button type="button" class="quick-login-btn" onclick="quickLogin('amika')">
+                <span>👩‍🔬</span> <span>amika (QA)</span>
+              </button>
+              <button type="button" class="quick-login-btn" onclick="quickLogin('callum')">
+                <span>🚀</span> <span>callum (Scrum Master)</span>
+              </button>
+              <button type="button" class="quick-login-btn" onclick="quickLogin('admin')">
+                <span>🎓</span> <span>admin (Academy Lead)</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- 2. SIGN UP FORM -->
+        <form id="signup-form" style="display: none;">
+          <div class="form-group">
+            <label class="form-label" for="signup-name">Full Name</label>
+            <input type="text" id="signup-name" class="form-control" placeholder="e.g. Alex Morgan" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="signup-username">Username</label>
+            <input type="text" id="signup-username" class="form-control" placeholder="e.g. alexm" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="signup-email">Work Email</label>
+            <input type="email" id="signup-email" class="form-control" placeholder="e.g. alex.m@ten10.com" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="signup-password">Create Password</label>
+            <input type="password" id="signup-password" class="form-control" placeholder="Minimum 4 characters" minlength="4" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="signup-role">Target Professional Role</label>
+            <select id="signup-role" class="form-control" required></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="signup-type">Account Role</label>
+            <select id="signup-type" class="form-control">
+              <option value="consultant">Ten10 Consultant (User)</option>
+              <option value="admin">Ten10 Academy Lead (Admin)</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem; margin-top: 0.5rem;">
+            Create Account & Launch Roadmap
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
