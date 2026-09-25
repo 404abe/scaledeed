@@ -1149,3 +1149,41 @@ input:checked + .slider:before {
   background: #F8FAFC;
   transform: translateY(-1px);
 }
+
+/* ============================================================
+   Explore Team Members (bottom-of-page feature)
+   ============================================================ */
+.explore-consultants-section {
+  margin-top: 2.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem 1.75rem;
+}
+
+.explore-consultants-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.explore-consultants-copy {
+  flex: 1 1 320px;
+}
+
+.explore-consultants-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+  max-width: 48ch;
+}
+
+.explore-consultants-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 240px;
+}

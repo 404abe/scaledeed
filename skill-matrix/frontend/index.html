@@ -44,11 +44,6 @@
     <section class="control-bar" id="control-bar">
       <div class="selector-group">
         <div>
-          <label class="control-label" for="consultant-select">Active Consultant</label>
-          <select id="consultant-select" class="select-styled"></select>
-        </div>
-
-        <div>
           <label class="control-label" for="role-select">Target Career Role</label>
           <select id="role-select" class="select-styled"></select>
         </div>
@@ -152,6 +147,22 @@
 
       <!-- The Skills Matrix Grid -->
       <section id="skills-matrix-grid" class="matrix-grid"></section>
+
+      <!-- Explore Team Members (view another consultant's roadmap) -->
+      <section class="explore-consultants-section">
+        <div class="explore-consultants-inner">
+          <div class="explore-consultants-copy">
+            <h3 class="section-title">🔍 Explore a Team Member</h3>
+            <p class="explore-consultants-desc">
+              Curious how a colleague's roadmap looks? Switch the active roadmap to view another consultant's skill matrix and progress.
+            </p>
+          </div>
+          <div class="explore-consultants-control">
+            <label class="control-label" for="consultant-select">Active Consultant</label>
+            <select id="consultant-select" class="select-styled"></select>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- ========================================================
