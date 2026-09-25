@@ -69,6 +69,7 @@ async function initApp() {
     }
   }
 
+  applyRoleAccess();
   renderApp();
 }
 
@@ -219,7 +220,36 @@ function setupEventListeners() {
   if (signupForm) signupForm.addEventListener("submit", handleSignupForm);
 }
 
+/**
+ * Hard-coded access rule: Craig is the Academy Lead and the ONLY user allowed
+ * to switch between the Consultant view and the Academy Lead (admin) view.
+ */
+function isAcademyLead(user) {
+  if (!user) return false;
+  const uname = (user.username || "").toLowerCase();
+  const name = (user.name || "").toLowerCase();
+  return uname === "craig" || name === "craig" || name.startsWith("craig ");
+}
+
+/**
+ * Shows the Academy Lead tab only for Craig; everyone else is locked to the
+ * consultant view. Called whenever the logged-in user changes.
+ */
+function applyRoleAccess() {
+  const adminTab = document.getElementById("tab-admin");
+  const canLead = isAcademyLead(appState.currentUser);
+  if (adminTab) adminTab.style.display = canLead ? "inline-flex" : "none";
+  // If a non-lead somehow lands on the admin view, force them back.
+  if (!canLead && appState.activeView === "admin") {
+    switchView("consultant");
+  }
+}
+
 function switchView(viewName) {
+  // Guard: only the Academy Lead (Craig) may enter the admin view.
+  if (viewName === "admin" && !isAcademyLead(appState.currentUser)) {
+    viewName = "consultant";
+  }
   appState.activeView = viewName;
   document.getElementById("tab-consultant").classList.toggle("active", viewName === "consultant");
   document.getElementById("tab-admin").classList.toggle("active", viewName === "admin");
@@ -1120,8 +1150,9 @@ function executeLogin(user, isNewSignup = false) {
   }));
   closeAuthModal();
   populateDropdowns();
+  applyRoleAccess();
 
-  if (user.isAdmin) {
+  if (isAcademyLead(user)) {
     switchView("admin");
   } else {
     switchView("consultant");
@@ -1134,6 +1165,7 @@ function executeLogin(user, isNewSignup = false) {
 function logoutUser() {
   localStorage.removeItem(SESSION_KEY);
   appState.currentUser = null;
+  applyRoleAccess();
   renderAuthBadge();
   openAuthModal('login');
   showToast("Logged out successfully.");
@@ -1152,7 +1184,7 @@ function renderAuthBadge() {
         <span class="auth-user-avatar">${user.avatar}</span>
         <div class="auth-user-info">
           <span class="auth-user-name">${user.name}</span>
-          <span class="auth-user-role">${user.isAdmin ? '🎓 Academy Lead' : getRoleName(user.roleId)}</span>
+          <span class="auth-user-role">${isAcademyLead(user) ? '🎓 Academy Lead' : getRoleName(user.roleId)}</span>
         </div>
         <button class="btn-auth-logout" onclick="logoutUser()">Log Out</button>
       </div>
